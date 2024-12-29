@@ -59,12 +59,16 @@ func main() {
 		snippets: &models.SnippetModel{DB: db},
 		sessionManager : sessionManager,
 	}
-
+	srv := &http.Server{
+		Addr:		 *addr,
+		Handler: app.routes(),
+		ErrorLog: slog.NewLogLogger(logger.Handler(),slog.LevelError),	
+	}
 	logger.Info("Starting server on", "addr", *addr,"session",sessionManager.Cookie)
 
 	log.Print("server is running on a port i wont tell you")
 
-	err = http.ListenAndServe(*addr, app.routes())
+	err = srv.ListenAndServe()
 	if err != nil {
 		logger.Error(err.Error())
 	}
