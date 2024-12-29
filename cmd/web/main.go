@@ -1,6 +1,7 @@
 package main
 
 import (
+	"crypto/tls"
 	"database/sql"
 	"flag"
 	"log"
@@ -17,8 +18,8 @@ import (
 )
 
 type application struct {
-	logger   *slog.Logger
-	snippets *models.SnippetModel
+	logger         *slog.Logger
+	snippets       *models.SnippetModel
 	sessionManager *scs.SessionManager
 }
 
@@ -50,22 +51,33 @@ func main() {
 	}
 	defer db.Close()
 
-
 	sessionManager := scs.New()
 	sessionManager.Store = mysqlstore.New(db)
 	sessionManager.Lifetime = 12 * time.Hour
 	sessionManager.Cookie.Secure = true
 	app := &application{
-		logger:   logger,
-		snippets: &models.SnippetModel{DB: db},
-		sessionManager : sessionManager,
+		logger:         logger,
+		snippets:       &models.SnippetModel{DB: db},
+		sessionManager: sessionManager,
+	}
+	tlsConfig := &tls.Config{
+		CurvePreferences: []tls.CurveID{tls.X25519, tls.CurveP256},
+		CipherSuites: []uint16{
+			tls.TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256,
+			tls.TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384,
+			tls.TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,
+			tls.TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,
+			tls.TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305_SHA256,
+			tls.TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305_SHA256,
+		},
 	}
 	srv := &http.Server{
-		Addr:		 *addr,
-		Handler: app.routes(),
-		ErrorLog: slog.NewLogLogger(logger.Handler(),slog.LevelError),	
+		Addr:      *addr,
+		Handler:   app.routes(),
+		ErrorLog:  slog.NewLogLogger(logger.Handler(), slog.LevelError),
+		TLSConfig: tlsConfig,
 	}
-	logger.Info("Starting server on", "addr", *addr,"session",sessionManager.Cookie)
+	logger.Info("Starting server on", "addr", *addr, "session", sessionManager.Cookie)
 
 	log.Print("server is running on a port i wont tell you")
 	// err = srv.ListenAndServe()
