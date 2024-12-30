@@ -21,6 +21,7 @@ type application struct {
 	logger         *slog.Logger
 	snippets       *models.SnippetModel
 	sessionManager *scs.SessionManager
+	users 			*models.UserModel
 }
 
 func (app *application) serverError(w http.ResponseWriter, r *http.Request, err error) {
@@ -59,6 +60,7 @@ func main() {
 		logger:         logger,
 		snippets:       &models.SnippetModel{DB: db},
 		sessionManager: sessionManager,
+		users : &models.UserModel{DB:db},
 	}
 	tlsConfig := &tls.Config{
 		CurvePreferences: []tls.CurveID{tls.X25519, tls.CurveP256},
